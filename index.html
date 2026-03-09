@@ -77,39 +77,77 @@
   #folder-input { display: none; }
   #clip-count { color: var(--text-dim); font-size: 10px; padding: 5px 12px; flex-shrink: 0; border-bottom: 1px solid var(--border); }
   #clip-grid {
-    flex: 1; overflow-y: auto; padding: 8px; display: grid; grid-template-columns: 1fr 1fr; gap: 6px;
+    flex: 1; overflow-y: auto; padding: 8px; display: grid; grid-template-columns: 1fr; gap: 6px;
     align-content: start;
   }
   #clip-grid::-webkit-scrollbar { width: 4px; }
   #clip-grid::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
-  .clip-thumb {
+
+  /* Clip card */
+  .clip-card {
     background: var(--panel2); border: 1px solid var(--border); border-radius: 5px;
-    cursor: pointer; overflow: hidden; position: relative; aspect-ratio: 16/9;
-    transition: border-color 0.15s, box-shadow 0.15s;
+    overflow: hidden; transition: border-color 0.15s, box-shadow 0.15s; cursor: pointer;
   }
-  .clip-thumb:hover { border-color: var(--accent-a); box-shadow: 0 0 8px rgba(0,229,255,0.2); }
-  .clip-thumb video { width: 100%; height: 100%; object-fit: cover; display: block; pointer-events: none; }
-  .clip-thumb .clip-name {
-    position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(transparent, rgba(0,0,0,0.85));
-    font-size: 9px; padding: 6px 4px 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text);
+  .clip-card:hover { border-color: var(--accent-a); box-shadow: 0 0 8px rgba(0,229,255,0.2); }
+  .clip-card-video { width: 100%; aspect-ratio: 16/9; background: #000; overflow: hidden; position: relative; }
+  .clip-card-video video { width: 100%; height: 100%; object-fit: cover; display: block; pointer-events: none; }
+  .clip-card-footer {
+    display: flex; align-items: center; gap: 4px; padding: 4px 6px;
+    background: rgba(0,0,0,0.6); border-top: 1px solid var(--border);
   }
-  .clip-thumb .load-btns {
-    position: absolute; inset: 0; display: none;
-    flex-direction: column; justify-content: center; align-items: center; gap: 5px;
-    background: rgba(0,0,0,0.65); backdrop-filter: blur(2px);
+  .clip-card-name { flex: 1; font-size: 9px; color: var(--text-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .deck-pill {
+    font-size: 9px; font-weight: 900; border: none; border-radius: 3px;
+    padding: 3px 7px; cursor: pointer; font-family: inherit; letter-spacing: 1px;
+    transition: opacity 0.1s, transform 0.1s; flex-shrink: 0;
   }
-  .clip-thumb:hover .load-btns { display: flex; }
-  .load-deck-btn {
-    padding: 4px 0; font-family: inherit; font-size: 10px; font-weight: 900;
-    border: none; cursor: pointer; border-radius: 3px; width: 85%; letter-spacing: 1px; transition: opacity 0.1s;
-  }
-  .load-deck-btn:hover { opacity: 0.85; }
-  .load-deck-btn.a { background: var(--accent-a); color: #000; }
-  .load-deck-btn.b { background: var(--accent-b); color: #fff; }
+  .deck-pill:hover { opacity: 0.8; transform: scale(1.05); }
+  .deck-pill:active { transform: scale(0.95); }
+  .deck-pill.a { background: var(--accent-a); color: #000; }
+  .deck-pill.b { background: var(--accent-b); color: #fff; }
   #lib-empty {
-    grid-column: 1 / -1; color: var(--text-dim); font-size: 11px; padding: 24px 12px;
+    color: var(--text-dim); font-size: 11px; padding: 24px 12px;
     text-align: center; line-height: 2; border: 1px dashed var(--border); border-radius: 6px; margin: 4px;
   }
+
+  /* ── AUDIO REACT ── */
+  #audio-meter-canvas { width: 100%; height: 36px; display: block; border-radius: 3px; background: #000; }
+  .ar-table { width: 100%; border-collapse: collapse; }
+  .ar-table th { font-size: 8px; letter-spacing: 1px; color: var(--text-dim); padding: 3px 4px; text-align: left; border-bottom: 1px solid var(--border); }
+  .ar-table td { padding: 3px 4px; vertical-align: middle; }
+  .ar-target { font-size: 9px; color: var(--text); white-space: nowrap; }
+  .ar-band-sel {
+    background: var(--panel); border: 1px solid var(--border); color: var(--text);
+    font-family: inherit; font-size: 9px; padding: 2px 4px; border-radius: 3px; cursor: pointer; width: 100%;
+  }
+  .ar-amount { width: 100%; }
+  .ar-val { font-size: 9px; color: var(--text-dim); min-width: 22px; text-align: right; display: block; }
+  .ar-level-bar {
+    height: 4px; border-radius: 2px; margin-top: 4px; background: var(--border); overflow: hidden;
+  }
+  .ar-level-fill { height: 100%; width: 0%; border-radius: 2px; transition: width 0.05s; }
+  .ar-bass-fill { background: var(--accent-b); }
+  .ar-mid-fill { background: var(--accent-m); }
+  .ar-hi-fill { background: var(--accent-a); }
+  .audio-load-btn {
+    width: 100%; padding: 6px; font-family: inherit; font-size: 10px; font-weight: 900;
+    background: var(--panel2); border: 1px solid var(--border); color: var(--text);
+    cursor: pointer; border-radius: 4px; letter-spacing: 1px; transition: all 0.1s;
+  }
+  .audio-load-btn:hover { border-color: var(--accent-m); color: var(--accent-m); }
+  #audio-track-name { font-size: 9px; color: var(--text-dim); text-align: center; margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .audio-transport { display: flex; gap: 4px; margin-top: 6px; }
+  .audio-transport button {
+    flex: 1; padding: 4px; font-family: inherit; font-size: 10px; font-weight: 700;
+    background: var(--panel2); border: 1px solid var(--border); color: var(--text);
+    cursor: pointer; border-radius: 3px; transition: all 0.1s;
+  }
+  .audio-transport button:hover { border-color: var(--accent-m); color: var(--accent-m); }
+  .band-meters { display: flex; gap: 4px; margin: 6px 0; }
+  .band-meter { flex: 1; }
+  .band-meter-label { font-size: 8px; color: var(--text-dim); text-align: center; margin-bottom: 2px; letter-spacing: 1px; }
+  .band-meter-bar { height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; }
+  .band-meter-fill { height: 100%; width: 0%; border-radius: 3px; transition: width 0.05s; }
 
   /* ── DECK A (col 2, spans both rows) ── */
   #deck-a {
@@ -455,6 +493,10 @@
     </div>
   </div>
 
+  <!-- ── AUDIO ENGINE (hidden element) ── -->
+  <audio id="audio-track" crossorigin="anonymous" style="display:none"></audio>
+  <input type="file" id="audio-input" accept="audio/*" style="display:none" onchange="loadAudioTrack(this.files)">
+
   <!-- ── OUTPUT CANVAS ── -->
   <div id="center-top">
     <canvas id="output-canvas"></canvas>
@@ -530,6 +572,80 @@
           <label><input type="checkbox" id="m-mirh" onchange="updateFx()"> MIRROR H</label>
           <label><input type="checkbox" id="m-mirv" onchange="updateFx()"> MIRROR V</label>
         </div>
+      </div>
+    </details>
+
+    <!-- Audio React -->
+    <details class="fx-section" open>
+      <summary><span class="fx-section-title m">AUDIO REACT</span><span class="fx-chevron">▼</span></summary>
+      <div class="fx-section-body">
+        <button class="audio-load-btn" onclick="document.getElementById('audio-input').click()">♫ LOAD MUSIC TRACK</button>
+        <div id="audio-track-name">No track loaded</div>
+        <div class="audio-transport">
+          <button onclick="audioPlay()">▶ PLAY</button>
+          <button onclick="audioPause()">⏸ PAUSE</button>
+          <button onclick="audioStop()">■ STOP</button>
+        </div>
+        <!-- Band meters -->
+        <div class="band-meters">
+          <div class="band-meter">
+            <div class="band-meter-label">BASS</div>
+            <div class="band-meter-bar"><div class="band-meter-fill" id="ar-bass-fill" style="background:var(--accent-b)"></div></div>
+          </div>
+          <div class="band-meter">
+            <div class="band-meter-label">MID</div>
+            <div class="band-meter-bar"><div class="band-meter-fill" id="ar-mid-fill" style="background:var(--accent-m)"></div></div>
+          </div>
+          <div class="band-meter">
+            <div class="band-meter-label">HI</div>
+            <div class="band-meter-bar"><div class="band-meter-fill" id="ar-hi-fill" style="background:var(--accent-a)"></div></div>
+          </div>
+          <div class="band-meter">
+            <div class="band-meter-label">ALL</div>
+            <div class="band-meter-bar"><div class="band-meter-fill" id="ar-overall-fill" style="background:var(--green)"></div></div>
+          </div>
+        </div>
+        <!-- Routing matrix -->
+        <table class="ar-table">
+          <thead><tr><th>TARGET</th><th>BAND</th><th>AMOUNT</th></tr></thead>
+          <tbody>
+            <tr class="ar-row" data-target="aBri">
+              <td><span class="ar-target" style="color:var(--accent-a)">A BRIGHT</span></td>
+              <td><select class="ar-band-sel"><option value="none">—</option><option value="bass" selected>BASS</option><option value="mid">MID</option><option value="hi">HI</option><option value="overall">ALL</option></select></td>
+              <td><input type="range" class="ar-amount" min="0" max="150" value="0" oninput="this.closest('tr').querySelector('.ar-val').textContent=this.value"><span class="ar-val">0</span></td>
+            </tr>
+            <tr class="ar-row" data-target="bBri">
+              <td><span class="ar-target" style="color:var(--accent-b)">B BRIGHT</span></td>
+              <td><select class="ar-band-sel"><option value="none">—</option><option value="bass" selected>BASS</option><option value="mid">MID</option><option value="hi">HI</option><option value="overall">ALL</option></select></td>
+              <td><input type="range" class="ar-amount" min="0" max="150" value="0" oninput="this.closest('tr').querySelector('.ar-val').textContent=this.value"><span class="ar-val">0</span></td>
+            </tr>
+            <tr class="ar-row" data-target="aOpac">
+              <td><span class="ar-target" style="color:var(--accent-a)">A OPACITY</span></td>
+              <td><select class="ar-band-sel"><option value="none">—</option><option value="bass">BASS</option><option value="mid">MID</option><option value="hi">HI</option><option value="overall" selected>ALL</option></select></td>
+              <td><input type="range" class="ar-amount" min="0" max="150" value="0" oninput="this.closest('tr').querySelector('.ar-val').textContent=this.value"><span class="ar-val">0</span></td>
+            </tr>
+            <tr class="ar-row" data-target="bOpac">
+              <td><span class="ar-target" style="color:var(--accent-b)">B OPACITY</span></td>
+              <td><select class="ar-band-sel"><option value="none">—</option><option value="bass">BASS</option><option value="mid">MID</option><option value="hi">HI</option><option value="overall" selected>ALL</option></select></td>
+              <td><input type="range" class="ar-amount" min="0" max="150" value="0" oninput="this.closest('tr').querySelector('.ar-val').textContent=this.value"><span class="ar-val">0</span></td>
+            </tr>
+            <tr class="ar-row" data-target="zoom">
+              <td><span class="ar-target" style="color:var(--accent-m)">ZOOM</span></td>
+              <td><select class="ar-band-sel"><option value="none">—</option><option value="bass">BASS</option><option value="mid" selected>MID</option><option value="hi">HI</option><option value="overall">ALL</option></select></td>
+              <td><input type="range" class="ar-amount" min="0" max="150" value="0" oninput="this.closest('tr').querySelector('.ar-val').textContent=this.value"><span class="ar-val">0</span></td>
+            </tr>
+            <tr class="ar-row" data-target="hue">
+              <td><span class="ar-target" style="color:var(--accent-m)">HUE SPIN</span></td>
+              <td><select class="ar-band-sel"><option value="none">—</option><option value="bass">BASS</option><option value="mid" selected>MID</option><option value="hi">HI</option><option value="overall">ALL</option></select></td>
+              <td><input type="range" class="ar-amount" min="0" max="150" value="0" oninput="this.closest('tr').querySelector('.ar-val').textContent=this.value"><span class="ar-val">0</span></td>
+            </tr>
+            <tr class="ar-row" data-target="blur">
+              <td><span class="ar-target" style="color:var(--accent-m)">BLUR</span></td>
+              <td><select class="ar-band-sel"><option value="none">—</option><option value="bass">BASS</option><option value="mid">MID</option><option value="hi" selected>HI</option><option value="overall">ALL</option></select></td>
+              <td><input type="range" class="ar-amount" min="0" max="150" value="0" oninput="this.closest('tr').querySelector('.ar-val').textContent=this.value"><span class="ar-val">0</span></td>
+            </tr>
+          </tbody>
+        </table>
       </div>
     </details>
   </div>
@@ -702,6 +818,13 @@ const state = {
   frameCount: 0,
   lastFpsTime: performance.now(),
   fps: 0,
+  // Audio engine
+  audioCtx: null,
+  analyser: null,
+  audioSource: null,
+  audioData: null,
+  audioLevels: { bass: 0, mid: 0, hi: 0, overall: 0 },
+  audioSmooth: { bass: 0, mid: 0, hi: 0, overall: 0 },
 };
 
 // ── Video elements ──
@@ -738,47 +861,142 @@ function loadClips(files) {
   grid.innerHTML = '';
   document.getElementById('clip-count').textContent = `${newClips.length} clip${newClips.length !== 1 ? 's' : ''} loaded`;
 
-  newClips.forEach((file, i) => {
+  newClips.forEach((file) => {
     const url = URL.createObjectURL(file);
-    const thumb = document.createElement('div');
-    thumb.className = 'clip-thumb';
-    thumb.dataset.url = url;
-    thumb.dataset.name = file.name;
+    const shortName = file.name.replace(/\.[^.]+$/, '');
 
+    // Card wrapper
+    const card = document.createElement('div');
+    card.className = 'clip-card';
+
+    // Video thumbnail area
+    const videoWrap = document.createElement('div');
+    videoWrap.className = 'clip-card-video';
     const vid = document.createElement('video');
     vid.src = url;
     vid.muted = true;
     vid.preload = 'metadata';
-    vid.currentTime = 0.5; // grab a thumbnail frame
+    vid.addEventListener('loadedmetadata', () => { vid.currentTime = 0.5; });
+    videoWrap.appendChild(vid);
 
-    const nameDiv = document.createElement('div');
-    nameDiv.className = 'clip-name';
-    nameDiv.textContent = file.name.replace(/\.[^.]+$/, '');
+    // Footer: name + A / B pills
+    const footer = document.createElement('div');
+    footer.className = 'clip-card-footer';
 
-    const btns = document.createElement('div');
-    btns.className = 'load-btns';
-    const btnA = document.createElement('button');
-    btnA.className = 'load-deck-btn a';
-    btnA.textContent = '▶ Load to A';
-    btnA.onclick = (e) => { e.stopPropagation(); loadToDeck('a', url, file.name); };
-    const btnB = document.createElement('button');
-    btnB.className = 'load-deck-btn b';
-    btnB.textContent = '▶ Load to B';
-    btnB.onclick = (e) => { e.stopPropagation(); loadToDeck('b', url, file.name); };
+    const nameEl = document.createElement('span');
+    nameEl.className = 'clip-card-name';
+    nameEl.textContent = shortName;
+    nameEl.title = shortName;
 
-    btns.appendChild(btnA);
-    btns.appendChild(btnB);
-    thumb.appendChild(vid);
-    thumb.appendChild(nameDiv);
-    thumb.appendChild(btns);
-    grid.appendChild(thumb);
+    const pillA = document.createElement('button');
+    pillA.className = 'deck-pill a';
+    pillA.textContent = '▶A';
+    pillA.title = 'Load to Deck A';
+    pillA.onclick = (e) => { e.stopPropagation(); loadToDeck('a', url, file.name); };
 
-    // Single click → load to next free deck
-    thumb.addEventListener('click', () => {
-      if (!vidA.src || vidA.src === window.location.href) loadToDeck('a', url, file.name);
-      else loadToDeck('b', url, file.name);
-    });
+    const pillB = document.createElement('button');
+    pillB.className = 'deck-pill b';
+    pillB.textContent = '▶B';
+    pillB.title = 'Load to Deck B';
+    pillB.onclick = (e) => { e.stopPropagation(); loadToDeck('b', url, file.name); };
+
+    footer.appendChild(nameEl);
+    footer.appendChild(pillA);
+    footer.appendChild(pillB);
+    card.appendChild(videoWrap);
+    card.appendChild(footer);
+    grid.appendChild(card);
   });
+}
+
+// ─────────────────────────────────────
+//  AUDIO ENGINE
+// ─────────────────────────────────────
+function loadAudioTrack(files) {
+  const file = files[0];
+  if (!file) return;
+
+  if (!state.audioCtx) {
+    state.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    state.analyser = state.audioCtx.createAnalyser();
+    state.analyser.fftSize = 2048;
+    state.analyser.smoothingTimeConstant = 0.75;
+    state.audioData = new Uint8Array(state.analyser.frequencyBinCount);
+    state.analyser.connect(state.audioCtx.destination);
+  }
+
+  const audioEl = document.getElementById('audio-track');
+  if (state.audioSource) {
+    state.audioSource.disconnect();
+    state.audioSource = null;
+  }
+  audioEl.src = URL.createObjectURL(file);
+  audioEl.load();
+  audioEl.oncanplay = () => {
+    state.audioSource = state.audioCtx.createMediaElementSource(audioEl);
+    state.audioSource.connect(state.analyser);
+    document.getElementById('audio-track-name').textContent = file.name.replace(/\.[^.]+$/, '');
+  };
+}
+
+function audioPlay() {
+  const el = document.getElementById('audio-track');
+  if (!el.src) return;
+  if (state.audioCtx && state.audioCtx.state === 'suspended') state.audioCtx.resume();
+  el.play();
+}
+function audioPause() { document.getElementById('audio-track').pause(); }
+function audioStop() {
+  const el = document.getElementById('audio-track');
+  el.pause();
+  el.currentTime = 0;
+}
+
+function updateAudioLevels() {
+  if (!state.analyser || !state.audioData) return;
+  state.analyser.getByteFrequencyData(state.audioData);
+
+  const sampleRate = state.audioCtx.sampleRate;
+  const bins = state.audioData.length;
+  const binHz = (sampleRate / 2) / bins;
+
+  function avgBand(lo, hi) {
+    const loIdx = Math.max(0, Math.floor(lo / binHz));
+    const hiIdx = Math.min(bins - 1, Math.ceil(hi / binHz));
+    let sum = 0;
+    for (let i = loIdx; i <= hiIdx; i++) sum += state.audioData[i];
+    return sum / ((hiIdx - loIdx + 1) * 255);
+  }
+
+  const bass = avgBand(20, 250);
+  const mid  = avgBand(250, 4000);
+  const hi   = avgBand(4000, 16000);
+  const overall = bass * 0.45 + mid * 0.35 + hi * 0.2;
+
+  const k = 0.25;
+  state.audioSmooth.bass    = state.audioSmooth.bass    * (1-k) + bass    * k;
+  state.audioSmooth.mid     = state.audioSmooth.mid     * (1-k) + mid     * k;
+  state.audioSmooth.hi      = state.audioSmooth.hi      * (1-k) + hi      * k;
+  state.audioSmooth.overall = state.audioSmooth.overall * (1-k) + overall * k;
+
+  // Update band meter UI
+  document.getElementById('ar-bass-fill').style.width    = Math.min(100, state.audioSmooth.bass    * 100 * 2) + '%';
+  document.getElementById('ar-mid-fill').style.width     = Math.min(100, state.audioSmooth.mid     * 100 * 2) + '%';
+  document.getElementById('ar-hi-fill').style.width      = Math.min(100, state.audioSmooth.hi      * 100 * 2) + '%';
+  document.getElementById('ar-overall-fill').style.width = Math.min(100, state.audioSmooth.overall * 100 * 2) + '%';
+}
+
+// Returns the audio-driven delta for a given routing row target
+function getAudioMod(target) {
+  let totalMod = 0;
+  document.querySelectorAll(`.ar-row[data-target="${target}"]`).forEach(row => {
+    const band   = row.querySelector('.ar-band-sel').value;
+    const amount = parseFloat(row.querySelector('.ar-amount').value) / 100;
+    if (band === 'none' || amount === 0) return;
+    const level = state.audioSmooth[band] || 0;
+    totalMod += level * amount; // 0..amount
+  });
+  return totalMod;
 }
 
 function loadToDeck(deck, url, name) {
@@ -1021,15 +1239,25 @@ function render() {
     return;
   }
 
-  const xfade = parseFloat(document.getElementById('xfader').value); // 0=all A, 1=all B
-  const alphaA = Math.max(0, Math.min(1, 1 - xfade * 2)) * parseFloat(document.getElementById('a-opac').value);
-  const alphaB = Math.max(0, Math.min(1, (xfade - 0.5) * 2)) * parseFloat(document.getElementById('b-opac').value);
+  // ── Audio analysis ──
+  if (state.analyser) updateAudioLevels();
 
-  // When xfade is near middle, both are visible
-  const smoothA = xfade <= 0.5 ? 1.0 * parseFloat(document.getElementById('a-opac').value)
-                               : (1 - xfade) * 2 * parseFloat(document.getElementById('a-opac').value);
-  const smoothB = xfade >= 0.5 ? 1.0 * parseFloat(document.getElementById('b-opac').value)
-                               : xfade * 2 * parseFloat(document.getElementById('b-opac').value);
+  // ── Audio modulation values ──
+  const arABri   = getAudioMod('aBri')   * 200; // 0..amount*200 brightness boost
+  const arBBri   = getAudioMod('bBri')   * 200;
+  const arAOpac  = getAudioMod('aOpac');        // 0..amount extra opacity
+  const arBOpac  = getAudioMod('bOpac');
+  const arZoom   = getAudioMod('zoom')   * 80;  // 0..zoom% boost
+  const arHue    = getAudioMod('hue')    * 360; // 0..360deg spin
+  const arBlur   = getAudioMod('blur')   * 15;  // 0..15px blur boost
+
+  const xfade = parseFloat(document.getElementById('xfader').value); // 0=all A, 1=all B
+
+  // Opacity from crossfader × opacity slider × audio mod (audio adds on top, capped at 1)
+  const baseOpacA = parseFloat(document.getElementById('a-opac').value);
+  const baseOpacB = parseFloat(document.getElementById('b-opac').value);
+  const smoothA = Math.min(1, (xfade <= 0.5 ? 1.0 : (1 - xfade) * 2) * Math.min(1, baseOpacA + arAOpac));
+  const smoothB = Math.min(1, (xfade >= 0.5 ? 1.0 : xfade * 2)       * Math.min(1, baseOpacB + arBOpac));
 
   // Apply grade to master fx
   const g = grades[state.grade] || grades.none;
@@ -1042,7 +1270,7 @@ function render() {
   const blendMode = document.getElementById('blend-mode').value === 'add'
     ? 'lighter' : document.getElementById('blend-mode').value;
 
-  const zoom = parseFloat(document.getElementById('m-zoom').value) / 100;
+  const zoom = (parseFloat(document.getElementById('m-zoom').value) + arZoom) / 100;
   const rot = parseFloat(document.getElementById('m-rot').value) * Math.PI / 180;
   const mirH = document.getElementById('m-mirh').checked;
   const mirV = document.getElementById('m-mirv').checked;
@@ -1058,11 +1286,11 @@ function render() {
   // Draw Deck A
   if (vidA.readyState >= 2 && smoothA > 0.001) {
     const filterA = buildFilter(
-      document.getElementById('a-bri').value,
+      +document.getElementById('a-bri').value + arABri,
       document.getElementById('a-con').value,
       document.getElementById('a-sat').value,
-      document.getElementById('a-hue').value,
-      document.getElementById('a-blur').value,
+      +document.getElementById('a-hue').value + arHue,
+      +document.getElementById('a-blur').value + arBlur,
       document.getElementById('a-inv').checked
     );
     ctx.save();
@@ -1076,11 +1304,11 @@ function render() {
   // Draw Deck B
   if (vidB.readyState >= 2 && smoothB > 0.001) {
     const filterB = buildFilter(
-      document.getElementById('b-bri').value,
+      +document.getElementById('b-bri').value + arBBri,
       document.getElementById('b-con').value,
       document.getElementById('b-sat').value,
-      document.getElementById('b-hue').value,
-      document.getElementById('b-blur').value,
+      +document.getElementById('b-hue').value + arHue,
+      +document.getElementById('b-blur').value + arBlur,
       document.getElementById('b-inv').checked
     );
     ctx.save();
