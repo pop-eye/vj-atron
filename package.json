@@ -1,0 +1,11 @@
+{
+  "name": "vj-atron",
+  "version": "1.0.0",
+  "description": "Browser-based VJ station for teaching live video performance",
+  "scripts": {
+    "start": "serve -s . -l ${PORT:-3000}"
+  },
+  "dependencies": {
+    "serve": "^14"
+  }
+}

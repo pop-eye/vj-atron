@@ -1,0 +1,1275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VJ-ATRON — Browser VJ Station</title>
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --panel: #12121a;
+    --panel2: #1a1a26;
+    --border: #2a2a40;
+    --accent-a: #00e5ff;
+    --accent-b: #ff3cac;
+    --accent-m: #7b2fff;
+    --text: #e0e0f0;
+    --text-dim: #6060a0;
+    --green: #00ff88;
+    --orange: #ff9000;
+    --red: #ff3030;
+    --slider-h: 6px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 100%; height: 100%; overflow: hidden; background: var(--bg); color: var(--text); font-family: 'Courier New', monospace; font-size: 12px; }
+
+  /* ── TOP BAR ── */
+  #topbar {
+    height: 48px; background: var(--panel); border-bottom: 2px solid var(--border);
+    display: flex; align-items: center; padding: 0 16px; gap: 14px; user-select: none; flex-shrink: 0;
+  }
+  #topbar .logo {
+    font-size: 20px; font-weight: 900; letter-spacing: 5px; color: var(--accent-a);
+    text-shadow: 0 0 16px var(--accent-a), 0 0 40px rgba(0,229,255,0.3);
+  }
+  #topbar .divider { width: 1px; height: 28px; background: var(--border); flex-shrink: 0; }
+  #topbar .tagline { color: var(--text-dim); font-size: 10px; letter-spacing: 2px; }
+  .spacer { flex: 1; }
+  #bpm-section { display: flex; align-items: center; gap: 8px; background: var(--panel2); border: 1px solid var(--border); border-radius: 5px; padding: 4px 10px; }
+  #bpm-label { font-size: 9px; letter-spacing: 2px; color: var(--text-dim); }
+  #bpm-display { font-size: 20px; font-weight: 900; color: var(--green); text-shadow: 0 0 8px var(--green); min-width: 52px; text-align: center; }
+  #beat-indicator { width: 12px; height: 12px; border-radius: 50%; background: var(--text-dim); transition: background 0.05s, box-shadow 0.05s; flex-shrink: 0; }
+  #beat-indicator.flash { background: var(--orange); box-shadow: 0 0 12px var(--orange); }
+  .tap-btn {
+    padding: 5px 12px; background: var(--panel2); border: 1px solid var(--border); color: var(--text);
+    cursor: pointer; border-radius: 4px; font-family: inherit; font-size: 11px; font-weight: 700; letter-spacing: 1px;
+    transition: all 0.1s;
+  }
+  .tap-btn:hover { border-color: var(--green); color: var(--green); background: rgba(0,255,136,0.08); }
+  #vol-section { display: flex; align-items: center; gap: 8px; }
+  #vol-section label { font-size: 9px; letter-spacing: 2px; color: var(--text-dim); }
+
+  /* ── MAIN LAYOUT: 5-column grid ── */
+  #app {
+    display: grid;
+    grid-template-columns: 190px 270px 1fr 270px 200px;
+    grid-template-rows: 1fr 150px;
+    height: calc(100vh - 48px);
+  }
+
+  /* ── LIBRARY (col 1, spans both rows) ── */
+  #library {
+    grid-column: 1; grid-row: 1 / 3;
+    background: var(--panel); border-right: 1px solid var(--border);
+    display: flex; flex-direction: column; overflow: hidden;
+  }
+  .lib-header {
+    padding: 10px 12px; background: var(--panel2); border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 8px; flex-shrink: 0;
+  }
+  .lib-header span { font-weight: 700; color: var(--accent-a); font-size: 10px; letter-spacing: 2px; text-transform: uppercase; }
+  #load-folder-btn {
+    padding: 5px 10px; background: var(--accent-a); color: #000; font-family: inherit;
+    font-size: 10px; font-weight: 900; border: none; cursor: pointer; border-radius: 3px; white-space: nowrap;
+    letter-spacing: 1px; transition: background 0.1s;
+  }
+  #load-folder-btn:hover { background: #fff; }
+  #folder-input { display: none; }
+  #clip-count { color: var(--text-dim); font-size: 10px; padding: 5px 12px; flex-shrink: 0; border-bottom: 1px solid var(--border); }
+  #clip-grid {
+    flex: 1; overflow-y: auto; padding: 8px; display: grid; grid-template-columns: 1fr 1fr; gap: 6px;
+    align-content: start;
+  }
+  #clip-grid::-webkit-scrollbar { width: 4px; }
+  #clip-grid::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+  .clip-thumb {
+    background: var(--panel2); border: 1px solid var(--border); border-radius: 5px;
+    cursor: pointer; overflow: hidden; position: relative; aspect-ratio: 16/9;
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  .clip-thumb:hover { border-color: var(--accent-a); box-shadow: 0 0 8px rgba(0,229,255,0.2); }
+  .clip-thumb video { width: 100%; height: 100%; object-fit: cover; display: block; pointer-events: none; }
+  .clip-thumb .clip-name {
+    position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(transparent, rgba(0,0,0,0.85));
+    font-size: 9px; padding: 6px 4px 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text);
+  }
+  .clip-thumb .load-btns {
+    position: absolute; inset: 0; display: none;
+    flex-direction: column; justify-content: center; align-items: center; gap: 5px;
+    background: rgba(0,0,0,0.65); backdrop-filter: blur(2px);
+  }
+  .clip-thumb:hover .load-btns { display: flex; }
+  .load-deck-btn {
+    padding: 4px 0; font-family: inherit; font-size: 10px; font-weight: 900;
+    border: none; cursor: pointer; border-radius: 3px; width: 85%; letter-spacing: 1px; transition: opacity 0.1s;
+  }
+  .load-deck-btn:hover { opacity: 0.85; }
+  .load-deck-btn.a { background: var(--accent-a); color: #000; }
+  .load-deck-btn.b { background: var(--accent-b); color: #fff; }
+  #lib-empty {
+    grid-column: 1 / -1; color: var(--text-dim); font-size: 11px; padding: 24px 12px;
+    text-align: center; line-height: 2; border: 1px dashed var(--border); border-radius: 6px; margin: 4px;
+  }
+
+  /* ── DECK A (col 2, spans both rows) ── */
+  #deck-a {
+    grid-column: 2; grid-row: 1 / 3;
+    border-right: 1px solid var(--border);
+  }
+
+  /* ── OUTPUT (col 3, row 1) ── */
+  #center-top {
+    grid-column: 3; grid-row: 1;
+    background: #000; position: relative; overflow: hidden; display: flex;
+  }
+  #output-canvas { display: block; width: 100%; height: 100%; }
+  #output-label {
+    position: absolute; top: 10px; left: 50%; transform: translateX(-50%);
+    font-size: 9px; letter-spacing: 4px; color: rgba(255,255,255,0.15); pointer-events: none; text-transform: uppercase;
+  }
+  #output-info {
+    position: absolute; bottom: 8px; right: 10px; font-size: 9px; color: rgba(255,255,255,0.25);
+    pointer-events: none; text-align: right; line-height: 1.9; background: rgba(0,0,0,0.4); padding: 3px 7px; border-radius: 3px;
+  }
+
+  /* ── CROSSFADER BAR (col 3, row 2) ── */
+  #center-bottom {
+    grid-column: 3; grid-row: 2;
+    background: var(--panel); border-top: 2px solid var(--border);
+    display: flex; flex-direction: column; padding: 10px 18px 8px; gap: 8px; overflow: hidden;
+  }
+
+  /* ── CROSSFADER ── */
+  .section-label {
+    font-size: 9px; letter-spacing: 3px; color: var(--text-dim); font-weight: 700; text-transform: uppercase;
+  }
+  #xfader-row { display: flex; align-items: center; gap: 12px; }
+  .deck-label-a {
+    color: var(--accent-a); font-weight: 900; font-size: 12px; min-width: 44px;
+    text-shadow: 0 0 8px rgba(0,229,255,0.4);
+  }
+  .deck-label-b {
+    color: var(--accent-b); font-weight: 900; font-size: 12px; min-width: 44px; text-align: right;
+    text-shadow: 0 0 8px rgba(255,60,172,0.4);
+  }
+  #xfader { flex: 1; height: 14px !important; }
+
+  /* ── MASTER FX ROW ── */
+  #masterfx-row {
+    display: flex; align-items: center; gap: 0; flex-wrap: nowrap;
+    background: var(--panel2); border: 1px solid var(--border); border-radius: 5px; overflow: hidden;
+  }
+  .mfx-block {
+    display: flex; align-items: center; gap: 6px; padding: 5px 10px;
+    border-right: 1px solid var(--border); flex: 1;
+  }
+  .mfx-block:last-child { border-right: none; }
+  .mfx-block label { font-size: 9px; color: var(--text-dim); letter-spacing: 1px; white-space: nowrap; }
+  .mfx-block input[type=range] { flex: 1; min-width: 40px; }
+  .mfx-val { font-size: 9px; color: var(--text); min-width: 26px; text-align: right; }
+  .blend-select {
+    background: transparent; border: none; color: var(--text);
+    font-family: inherit; font-size: 10px; padding: 5px 10px; cursor: pointer; outline: none;
+    border-right: 1px solid var(--border); min-width: 130px;
+  }
+  .blend-select option { background: var(--panel2); }
+
+  /* ── KEYBOARD HINTS ── */
+  #kb-hints { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+  .kb-hint { font-size: 9px; color: var(--text-dim); display: flex; align-items: center; gap: 3px; }
+  .kb-hint kbd {
+    background: var(--panel2); border: 1px solid var(--border); padding: 1px 5px;
+    border-radius: 3px; font-family: inherit; font-size: 9px; color: var(--text); line-height: 1.6;
+  }
+
+  /* ── DECK B (col 4, spans both rows) ── */
+  #deck-b {
+    grid-column: 4; grid-row: 1 / 3;
+    border-left: 1px solid var(--border);
+  }
+
+  /* ── DECK SHARED STYLES ── */
+  .deck {
+    background: var(--panel); display: flex; flex-direction: column; overflow: hidden;
+  }
+  .deck-top {
+    display: flex; align-items: center; gap: 8px; padding: 7px 10px;
+    background: var(--panel2); border-bottom: 1px solid var(--border); flex-shrink: 0;
+  }
+  #deck-a .deck-top { border-left: 3px solid var(--accent-a); }
+  #deck-b .deck-top { border-left: 3px solid var(--accent-b); }
+  .deck-title { font-size: 12px; font-weight: 900; letter-spacing: 3px; }
+  .deck-title.a { color: var(--accent-a); }
+  .deck-title.b { color: var(--accent-b); }
+  .deck-clip-name { font-size: 10px; color: var(--text-dim); flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--text-dim); flex-shrink: 0; transition: all 0.2s; }
+  .status-dot.playing { background: var(--green); box-shadow: 0 0 8px var(--green); }
+
+  /* Deck video preview (top section, 16:9 aspect) */
+  .deck-video-wrap {
+    width: 100%; background: #000; position: relative; overflow: hidden;
+    aspect-ratio: 16/9; flex-shrink: 0; border-bottom: 1px solid var(--border);
+  }
+  .deck-video-wrap video { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .deck-video-overlay {
+    position: absolute; inset: 0; display: flex; align-items: center;
+    justify-content: center; pointer-events: none;
+  }
+  .deck-video-overlay.paused-icon::after {
+    content: '▶'; color: rgba(255,255,255,0.4); font-size: 32px;
+    text-shadow: 0 0 20px rgba(0,0,0,0.8);
+  }
+  #deck-a .deck-video-wrap { border-bottom: 2px solid rgba(0,229,255,0.2); }
+  #deck-b .deck-video-wrap { border-bottom: 2px solid rgba(255,60,172,0.2); }
+
+  /* Scrollable controls area below video */
+  .deck-controls { flex: 1; padding: 8px 10px; display: flex; flex-direction: column; gap: 6px; overflow-y: auto; }
+  .deck-controls::-webkit-scrollbar { width: 2px; }
+  .deck-controls::-webkit-scrollbar-thumb { background: var(--border); }
+
+  /* Transport buttons */
+  .transport { display: flex; gap: 4px; align-items: center; }
+  .t-btn {
+    padding: 5px 8px; border: 1px solid var(--border); background: var(--panel2);
+    color: var(--text); font-family: inherit; font-size: 11px; cursor: pointer; border-radius: 4px;
+    transition: all 0.1s; flex: 1; text-align: center;
+  }
+  .t-btn:hover { background: rgba(255,255,255,0.07); }
+  #deck-a .t-btn:hover { border-color: var(--accent-a); color: var(--accent-a); }
+  #deck-b .t-btn:hover { border-color: var(--accent-b); color: var(--accent-b); }
+  .t-btn.play-btn { font-weight: 700; flex: 2; }
+  .t-btn.play-btn.active { background: var(--green); border-color: var(--green); color: #000; box-shadow: 0 0 10px rgba(0,255,136,0.3); }
+  .t-btn.cue-btn { font-size: 10px; }
+  .loop-btn.active { background: var(--accent-m); border-color: var(--accent-m); color: #fff; }
+
+  /* Progress bar */
+  .prog-row { display: flex; align-items: center; gap: 6px; }
+  .prog-bar-wrap {
+    flex: 1; height: 10px; background: var(--border); border-radius: 5px;
+    cursor: pointer; position: relative; overflow: hidden;
+  }
+  .prog-bar-wrap:hover { background: #3a3a58; }
+  .prog-bar-fill {
+    height: 100%; border-radius: 5px; width: 0%; transition: width 0.1s linear; pointer-events: none;
+  }
+  #deck-a .prog-bar-fill { background: linear-gradient(to right, rgba(0,229,255,0.6), var(--accent-a)); }
+  #deck-b .prog-bar-fill { background: linear-gradient(to right, rgba(255,60,172,0.6), var(--accent-b)); }
+  .prog-time { font-size: 9px; color: var(--text-dim); min-width: 70px; text-align: right; white-space: nowrap; }
+
+  /* Sliders */
+  .ctrl-row { display: flex; align-items: center; gap: 5px; }
+  .ctrl-row label { font-size: 9px; color: var(--text-dim); min-width: 36px; letter-spacing: 1px; text-transform: uppercase; }
+  .ctrl-row input[type=range] { flex: 1; }
+  .ctrl-row .val { font-size: 9px; color: var(--text); min-width: 36px; text-align: right; }
+
+  /* ctrl-row track color per deck */
+  #deck-a .ctrl-row input[type=range] { accent-color: var(--accent-a); }
+  #deck-b .ctrl-row input[type=range] { accent-color: var(--accent-b); }
+
+  /* ── RANGE INPUT STYLING ── */
+  input[type=range] {
+    -webkit-appearance: none; appearance: none; height: var(--slider-h); background: var(--border);
+    border-radius: 3px; outline: none; cursor: pointer;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none; width: 14px; height: 14px; border-radius: 50%;
+    background: var(--text); border: 2px solid var(--bg); cursor: pointer; transition: transform 0.1s;
+  }
+  input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.25); }
+
+  #xfader {
+    height: 14px !important; background: linear-gradient(to right, var(--accent-a) 0%, #1a1a2e 45%, #1a1a2e 55%, var(--accent-b) 100%);
+    border-radius: 7px; border: 1px solid var(--border);
+  }
+  #xfader::-webkit-slider-thumb { background: #fff; width: 20px; height: 20px; border: 3px solid var(--bg); box-shadow: 0 0 8px rgba(255,255,255,0.4); }
+
+  /* ── WAVEFORM CANVASES ── */
+  .waveform-canvas { width: 100%; height: 28px; display: block; border-radius: 3px; overflow: hidden; }
+
+  /* ── RIGHT PANEL (FX RACK) — col 5, spans both rows ── */
+  #fx-rack {
+    grid-column: 5; grid-row: 1 / 3;
+    background: var(--panel); border-left: 1px solid var(--border);
+    display: flex; flex-direction: column; overflow-y: auto; overflow-x: hidden;
+  }
+  #fx-rack::-webkit-scrollbar { width: 3px; }
+  #fx-rack::-webkit-scrollbar-thumb { background: var(--border); }
+
+  .fx-rack-header {
+    padding: 10px 12px; background: var(--panel2); border-bottom: 1px solid var(--border);
+    font-size: 10px; font-weight: 900; letter-spacing: 3px; color: var(--text-dim); flex-shrink: 0;
+  }
+
+  /* Collapsible FX sections */
+  .fx-section {
+    border-bottom: 1px solid var(--border); flex-shrink: 0;
+  }
+  .fx-section summary {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 8px 12px; cursor: pointer; list-style: none; user-select: none;
+    background: var(--panel2); transition: background 0.1s;
+  }
+  .fx-section summary:hover { background: rgba(255,255,255,0.04); }
+  .fx-section summary::-webkit-details-marker { display: none; }
+  .fx-section-title { font-size: 10px; letter-spacing: 2px; font-weight: 700; }
+  .fx-section-title.a { color: var(--accent-a); }
+  .fx-section-title.b { color: var(--accent-b); }
+  .fx-section-title.m { color: var(--accent-m); }
+  .fx-chevron { font-size: 9px; color: var(--text-dim); transition: transform 0.2s; }
+  details[open] .fx-chevron { transform: rotate(180deg); }
+  .fx-section-body { padding: 10px 12px; display: flex; flex-direction: column; gap: 6px; }
+
+  .fx-row { display: flex; align-items: center; gap: 6px; }
+  .fx-row label { font-size: 9px; color: var(--text-dim); min-width: 32px; letter-spacing: 1px; text-transform: uppercase; }
+  .fx-row input[type=range] { flex: 1; }
+  .fx-row .v { font-size: 9px; color: var(--text); min-width: 26px; text-align: right; }
+  .fx-check-row { display: flex; align-items: center; gap: 6px; }
+  .fx-check-row input { accent-color: var(--accent-m); width: 13px; height: 13px; cursor: pointer; }
+  .fx-check-row label { font-size: 9px; color: var(--text-dim); cursor: pointer; }
+
+  /* Strobe control */
+  .strobe-row { display: flex; align-items: center; gap: 6px; }
+  #strobe-btn {
+    padding: 5px 10px; font-family: inherit; font-size: 10px; font-weight: 700; letter-spacing: 1px;
+    border: 1px solid var(--border); background: var(--panel2); color: var(--text-dim);
+    cursor: pointer; border-radius: 4px; transition: all 0.15s; white-space: nowrap;
+  }
+  #strobe-btn.on {
+    background: var(--red); border-color: var(--red); color: #fff;
+    box-shadow: 0 0 12px rgba(255,48,48,0.5);
+  }
+  .strobe-hz { font-size: 9px; color: var(--text-dim); min-width: 28px; text-align: right; }
+
+  /* Color grade pills */
+  .grade-btns { display: flex; flex-wrap: wrap; gap: 4px; }
+  .grade-btn {
+    padding: 4px 8px; font-size: 9px; font-weight: 700; letter-spacing: 1px;
+    border: 1px solid var(--border); background: var(--panel); color: var(--text-dim);
+    cursor: pointer; border-radius: 3px; font-family: inherit; transition: all 0.1s;
+  }
+  .grade-btn:hover { border-color: var(--text-dim); color: var(--text); }
+  .grade-btn.active { border-color: var(--accent-m); color: var(--accent-m); background: rgba(123,47,255,0.15); }
+
+  /* Mirror checkboxes */
+  .mirror-row { display: flex; gap: 10px; }
+  .mirror-row label { display: flex; align-items: center; gap: 5px; font-size: 9px; color: var(--text-dim); cursor: pointer; }
+  .mirror-row input { accent-color: var(--accent-m); width: 13px; height: 13px; }
+
+  /* ── TOOLTIPS ── */
+  [data-tip] { position: relative; }
+  [data-tip]:hover::after {
+    content: attr(data-tip); position: absolute; top: calc(100% + 5px); left: 50%; transform: translateX(-50%);
+    background: #000; color: var(--text); font-size: 9px; padding: 4px 8px; border-radius: 4px;
+    border: 1px solid var(--border); white-space: nowrap; z-index: 999; pointer-events: none;
+  }
+
+  /* ── ONBOARDING OVERLAY ── */
+  #onboard {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.92); z-index: 200;
+    display: flex; align-items: center; justify-content: center;
+    backdrop-filter: blur(6px);
+  }
+  .onboard-box {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 12px;
+    padding: 36px; max-width: 540px; width: 90%; box-shadow: 0 24px 80px rgba(0,0,0,0.8);
+  }
+  .onboard-box h1 {
+    font-size: 28px; color: var(--accent-a); letter-spacing: 6px; margin-bottom: 4px;
+    text-shadow: 0 0 20px rgba(0,229,255,0.5);
+  }
+  .onboard-box .sub { color: var(--text-dim); font-size: 12px; margin-bottom: 22px; line-height: 1.9; }
+  .onboard-box .features { list-style: none; margin-bottom: 26px; }
+  .onboard-box .features li {
+    padding: 6px 0; color: var(--text); font-size: 12px; border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 8px;
+  }
+  .onboard-box .features li::before { content: '▸'; color: var(--accent-a); flex-shrink: 0; }
+  .onboard-start {
+    width: 100%; padding: 13px; font-family: inherit; font-size: 14px; font-weight: 900;
+    background: var(--accent-a); color: #000; border: none; cursor: pointer; border-radius: 6px;
+    letter-spacing: 3px; transition: background 0.15s;
+  }
+  .onboard-start:hover { background: #fff; }
+  .onboard-note { margin-top: 16px; font-size: 10px; color: var(--text-dim); line-height: 1.9; }
+</style>
+</head>
+<body>
+
+<!-- ── ONBOARDING SPLASH ── -->
+<div id="onboard">
+  <div class="onboard-box">
+    <h1>VJ-ATRON</h1>
+    <p class="sub">A browser-based VJ station for learning the fundamentals of live video performance. Load your clips from your OneDrive folder and start mixing.</p>
+    <ul class="features">
+      <li>Dual deck video playback with independent controls</li>
+      <li>Crossfader — blend between Deck A and Deck B</li>
+      <li>Per-deck FX: brightness, contrast, saturation, speed, hue</li>
+      <li>Blend modes: Add, Screen, Multiply, Overlay &amp; more</li>
+      <li>BPM Tap Tempo with beat flash indicator</li>
+      <li>Strobe &amp; colour grade effects</li>
+      <li>Load video clips straight from your OneDrive folder</li>
+      <li>Full keyboard shortcut support</li>
+    </ul>
+    <button class="onboard-start" onclick="closeOnboard()">LAUNCH VJ-ATRON</button>
+    <p class="onboard-note">
+      <strong>OneDrive:</strong> Click "LOAD FOLDER" in the library panel and navigate to your OneDrive Videos folder.<br>
+      Supports MP4, WebM, MOV, OGG video formats.
+    </p>
+  </div>
+</div>
+
+<!-- ── TOP BAR ── -->
+<div id="topbar">
+  <span class="logo">VJ-ATRON</span>
+  <div class="divider"></div>
+  <span class="tagline">LIVE VIDEO PERFORMANCE STATION</span>
+  <div class="spacer"></div>
+  <div id="bpm-section">
+    <span id="bpm-label">BPM</span>
+    <div id="bpm-display">---</div>
+    <div id="beat-indicator"></div>
+    <button class="tap-btn" onclick="tapTempo()" data-tip="Tap rhythmically to set BPM">TAP</button>
+    <button class="tap-btn" onclick="resetBpm()" data-tip="Reset BPM" style="padding:5px 8px">✕</button>
+  </div>
+  <div class="divider"></div>
+  <div id="vol-section">
+    <label>MASTER VOL</label>
+    <input type="range" id="masterVol" min="0" max="1" step="0.01" value="1" style="width:90px" oninput="setMasterVol(this.value)">
+  </div>
+</div>
+
+<!-- ── APP GRID ── -->
+<div id="app">
+
+  <!-- ── CLIP LIBRARY ── -->
+  <div id="library">
+    <div class="lib-header">
+      <span>CLIP LIBRARY</span>
+      <div class="spacer"></div>
+      <button id="load-folder-btn" onclick="document.getElementById('folder-input').click()">LOAD FOLDER</button>
+      <input type="file" id="folder-input" multiple accept="video/*" webkitdirectory onchange="loadClips(this.files)">
+    </div>
+    <div id="clip-count">No clips loaded</div>
+    <div id="clip-grid">
+      <div id="lib-empty">Load your OneDrive video folder using the button above.<br><br>Supported: MP4, WebM, MOV, OGG</div>
+    </div>
+  </div>
+
+  <!-- ── OUTPUT CANVAS ── -->
+  <div id="center-top">
+    <canvas id="output-canvas"></canvas>
+    <div id="output-label">OUTPUT PREVIEW</div>
+    <div id="output-info">1280 × 720 · 60fps</div>
+  </div>
+
+  <!-- ── FX RACK (col 5, full height) ── -->
+  <div id="fx-rack">
+    <div class="fx-rack-header">FX RACK</div>
+
+    <!-- Deck A FX -->
+    <details class="fx-section" open>
+      <summary><span class="fx-section-title a">DECK A — FX</span><span class="fx-chevron">▼</span></summary>
+      <div class="fx-section-body">
+        <div class="fx-row"><label>BRI</label><input type="range" min="0" max="200" value="100" id="a-bri" oninput="updateFx()"><span class="v" id="a-bri-v">100</span></div>
+        <div class="fx-row"><label>CON</label><input type="range" min="0" max="200" value="100" id="a-con" oninput="updateFx()"><span class="v" id="a-con-v">100</span></div>
+        <div class="fx-row"><label>SAT</label><input type="range" min="0" max="200" value="100" id="a-sat" oninput="updateFx()"><span class="v" id="a-sat-v">100</span></div>
+        <div class="fx-row"><label>HUE</label><input type="range" min="0" max="360" value="0" id="a-hue" oninput="updateFx()"><span class="v" id="a-hue-v">0°</span></div>
+        <div class="fx-row"><label>BLR</label><input type="range" min="0" max="20" value="0" step="0.5" id="a-blur" oninput="updateFx()"><span class="v" id="a-blur-v">0</span></div>
+        <div class="fx-check-row"><input type="checkbox" id="a-inv" onchange="updateFx()"><label for="a-inv">Invert colours</label></div>
+      </div>
+    </details>
+
+    <!-- Deck B FX -->
+    <details class="fx-section" open>
+      <summary><span class="fx-section-title b">DECK B — FX</span><span class="fx-chevron">▼</span></summary>
+      <div class="fx-section-body">
+        <div class="fx-row"><label>BRI</label><input type="range" min="0" max="200" value="100" id="b-bri" oninput="updateFx()"><span class="v" id="b-bri-v">100</span></div>
+        <div class="fx-row"><label>CON</label><input type="range" min="0" max="200" value="100" id="b-con" oninput="updateFx()"><span class="v" id="b-con-v">100</span></div>
+        <div class="fx-row"><label>SAT</label><input type="range" min="0" max="200" value="100" id="b-sat" oninput="updateFx()"><span class="v" id="b-sat-v">100</span></div>
+        <div class="fx-row"><label>HUE</label><input type="range" min="0" max="360" value="0" id="b-hue" oninput="updateFx()"><span class="v" id="b-hue-v">0°</span></div>
+        <div class="fx-row"><label>BLR</label><input type="range" min="0" max="20" value="0" step="0.5" id="b-blur" oninput="updateFx()"><span class="v" id="b-blur-v">0</span></div>
+        <div class="fx-check-row"><input type="checkbox" id="b-inv" onchange="updateFx()"><label for="b-inv">Invert colours</label></div>
+      </div>
+    </details>
+
+    <!-- Strobe -->
+    <details class="fx-section">
+      <summary><span class="fx-section-title m">STROBE / FLASH</span><span class="fx-chevron">▼</span></summary>
+      <div class="fx-section-body">
+        <div class="strobe-row">
+          <button id="strobe-btn" onclick="toggleStrobe()">STROBE OFF</button>
+          <input type="range" min="1" max="30" value="8" id="strobe-rate" style="flex:1" oninput="updateStrobeRate(this.value)">
+          <span class="strobe-hz" id="strobe-rate-v">8Hz</span>
+        </div>
+      </div>
+    </details>
+
+    <!-- Colour Grade -->
+    <details class="fx-section" open>
+      <summary><span class="fx-section-title m">COLOUR GRADE</span><span class="fx-chevron">▼</span></summary>
+      <div class="fx-section-body">
+        <div class="grade-btns">
+          <button class="grade-btn active" onclick="setGrade(this,'none')">NONE</button>
+          <button class="grade-btn" onclick="setGrade(this,'warm')">WARM</button>
+          <button class="grade-btn" onclick="setGrade(this,'cool')">COOL</button>
+          <button class="grade-btn" onclick="setGrade(this,'bw')">B&amp;W</button>
+          <button class="grade-btn" onclick="setGrade(this,'sepia')">SEPIA</button>
+          <button class="grade-btn" onclick="setGrade(this,'neon')">NEON</button>
+          <button class="grade-btn" onclick="setGrade(this,'night')">NIGHT</button>
+        </div>
+      </div>
+    </details>
+
+    <!-- Output Transform -->
+    <details class="fx-section">
+      <summary><span class="fx-section-title m">OUTPUT TRANSFORM</span><span class="fx-chevron">▼</span></summary>
+      <div class="fx-section-body">
+        <div class="fx-row"><label>ZOOM</label><input type="range" min="50" max="200" value="100" id="m-zoom" oninput="updateFx()"><span class="v" id="m-zoom-v">100%</span></div>
+        <div class="fx-row"><label>ROT</label><input type="range" min="-180" max="180" value="0" id="m-rot" oninput="updateFx()"><span class="v" id="m-rot-v">0°</span></div>
+        <div class="mirror-row">
+          <label><input type="checkbox" id="m-mirh" onchange="updateFx()"> MIRROR H</label>
+          <label><input type="checkbox" id="m-mirv" onchange="updateFx()"> MIRROR V</label>
+        </div>
+      </div>
+    </details>
+  </div>
+
+  <!-- ── DECK A (col 2, full height) ── -->
+  <div class="deck" id="deck-a">
+    <div class="deck-top">
+      <span class="deck-title a">DECK A</span>
+      <span class="deck-clip-name" id="a-clip-name">No clip loaded</span>
+      <div class="status-dot" id="a-status-dot"></div>
+    </div>
+    <div class="deck-video-wrap">
+      <video id="vid-a" loop playsinline preload="auto" crossorigin="anonymous"></video>
+      <div class="deck-video-overlay paused-icon" id="a-overlay"></div>
+    </div>
+    <div class="deck-controls">
+      <div class="transport">
+        <button class="t-btn play-btn" id="a-play" onclick="togglePlay('a')" data-tip="SPACE">▶ PLAY</button>
+        <button class="t-btn" onclick="stopDeck('a')" data-tip="Stop &amp; rewind">■</button>
+        <button class="t-btn cue-btn" onclick="setCue('a')" data-tip="Set cue [Q]">CUE</button>
+        <button class="t-btn cue-btn" onclick="gotoCue('a')" data-tip="Jump to cue [W]">◉</button>
+        <button class="t-btn loop-btn" id="a-loop" onclick="toggleLoop('a')" data-tip="Toggle loop [L]">⟳</button>
+      </div>
+      <div class="prog-row">
+        <div class="prog-bar-wrap" id="a-prog-wrap" onclick="seekDeck('a', event)">
+          <div class="prog-bar-fill" id="a-prog"></div>
+        </div>
+        <span class="prog-time" id="a-time">0:00 / 0:00</span>
+      </div>
+      <canvas class="waveform-canvas" id="a-wave" height="28"></canvas>
+      <div class="ctrl-row">
+        <label>SPEED</label>
+        <input type="range" min="0.1" max="3" step="0.05" value="1" id="a-speed" oninput="setSpeed('a',this.value)">
+        <span class="val" id="a-speed-v">1.00×</span>
+      </div>
+      <div class="ctrl-row">
+        <label>VOLUME</label>
+        <input type="range" min="0" max="1" step="0.01" value="1" id="a-vol" oninput="setVol('a',this.value)">
+        <span class="val" id="a-vol-v">100%</span>
+      </div>
+      <div class="ctrl-row">
+        <label>OPACITY</label>
+        <input type="range" min="0" max="1" step="0.01" value="1" id="a-opac" oninput="updateFx()">
+        <span class="val" id="a-opac-v">100%</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── CROSSFADER BAR (col 3, row 2) ── -->
+  <div id="center-bottom">
+    <div id="xfader-row">
+      <span class="deck-label-a">◀ A</span>
+      <div style="flex:1;display:flex;flex-direction:column;gap:6px">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <span class="section-label">CROSSFADER</span>
+          <span style="font-size:9px;color:var(--text-dim)" id="xfade-pct">50%</span>
+        </div>
+        <input type="range" min="0" max="1" step="0.005" value="0.5" id="xfader" oninput="updateFx(); document.getElementById('xfade-pct').textContent=Math.round(this.value*100)+'%'">
+      </div>
+      <span class="deck-label-b">B ▶</span>
+    </div>
+
+    <div id="masterfx-row">
+      <select class="blend-select" id="blend-mode" onchange="updateFx()" title="Blend mode for Deck B over Deck A">
+        <option value="normal">Normal</option>
+        <option value="screen">Screen</option>
+        <option value="multiply">Multiply</option>
+        <option value="overlay">Overlay</option>
+        <option value="add">Add / Lighter</option>
+        <option value="difference">Difference</option>
+        <option value="exclusion">Exclusion</option>
+        <option value="hard-light">Hard Light</option>
+        <option value="soft-light">Soft Light</option>
+        <option value="color-dodge">Colour Dodge</option>
+        <option value="color-burn">Colour Burn</option>
+      </select>
+      <div class="mfx-block">
+        <label>BRI</label>
+        <input type="range" min="0" max="200" value="100" id="m-bri" oninput="updateFx()">
+        <span class="mfx-val" id="m-bri-v">100</span>
+      </div>
+      <div class="mfx-block">
+        <label>CON</label>
+        <input type="range" min="0" max="200" value="100" id="m-con" oninput="updateFx()">
+        <span class="mfx-val" id="m-con-v">100</span>
+      </div>
+      <div class="mfx-block">
+        <label>SAT</label>
+        <input type="range" min="0" max="200" value="100" id="m-sat" oninput="updateFx()">
+        <span class="mfx-val" id="m-sat-v">100</span>
+      </div>
+    </div>
+
+    <div id="kb-hints">
+      <span class="kb-hint"><kbd>SPACE</kbd> Play A</span>
+      <span class="kb-hint"><kbd>ENTER</kbd> Play B</span>
+      <span class="kb-hint"><kbd>← →</kbd> Xfader</span>
+      <span class="kb-hint"><kbd>Z/X</kbd> Speed A</span>
+      <span class="kb-hint"><kbd>N/M</kbd> Speed B</span>
+      <span class="kb-hint"><kbd>T</kbd> Tap BPM</span>
+      <span class="kb-hint"><kbd>S</kbd> Strobe</span>
+      <span class="kb-hint"><kbd>L/K</kbd> Loop A/B</span>
+      <span class="kb-hint"><kbd>Q/W</kbd> Cue A</span>
+      <span class="kb-hint"><kbd>O/P</kbd> Cue B</span>
+    </div>
+  </div>
+
+  <!-- ── DECK B (col 4, full height) ── -->
+  <div class="deck" id="deck-b">
+    <div class="deck-top">
+      <span class="deck-title b">DECK B</span>
+      <span class="deck-clip-name" id="b-clip-name">No clip loaded</span>
+      <div class="status-dot" id="b-status-dot"></div>
+    </div>
+    <div class="deck-video-wrap">
+      <video id="vid-b" loop playsinline preload="auto" crossorigin="anonymous"></video>
+      <div class="deck-video-overlay paused-icon" id="b-overlay"></div>
+    </div>
+    <div class="deck-controls">
+      <div class="transport">
+        <button class="t-btn play-btn" id="b-play" onclick="togglePlay('b')" data-tip="ENTER">▶ PLAY</button>
+        <button class="t-btn" onclick="stopDeck('b')" data-tip="Stop &amp; rewind">■</button>
+        <button class="t-btn cue-btn" onclick="setCue('b')" data-tip="Set cue [O]">CUE</button>
+        <button class="t-btn cue-btn" onclick="gotoCue('b')" data-tip="Jump to cue [P]">◉</button>
+        <button class="t-btn loop-btn" id="b-loop" onclick="toggleLoop('b')" data-tip="Toggle loop [K]">⟳</button>
+      </div>
+      <div class="prog-row">
+        <div class="prog-bar-wrap" id="b-prog-wrap" onclick="seekDeck('b', event)">
+          <div class="prog-bar-fill" id="b-prog"></div>
+        </div>
+        <span class="prog-time" id="b-time">0:00 / 0:00</span>
+      </div>
+      <canvas class="waveform-canvas" id="b-wave" height="28"></canvas>
+      <div class="ctrl-row">
+        <label>SPEED</label>
+        <input type="range" min="0.1" max="3" step="0.05" value="1" id="b-speed" oninput="setSpeed('b',this.value)">
+        <span class="val" id="b-speed-v">1.00×</span>
+      </div>
+      <div class="ctrl-row">
+        <label>VOLUME</label>
+        <input type="range" min="0" max="1" step="0.01" value="1" id="b-vol" oninput="setVol('b',this.value)">
+        <span class="val" id="b-vol-v">100%</span>
+      </div>
+      <div class="ctrl-row">
+        <label>OPACITY</label>
+        <input type="range" min="0" max="1" step="0.01" value="1" id="b-opac" oninput="updateFx()">
+        <span class="val" id="b-opac-v">100%</span>
+      </div>
+    </div>
+  </div>
+
+</div><!-- end #app -->
+
+<script>
+// ═══════════════════════════════════════════════════════
+//  VJ-ATRON — core engine
+// ═══════════════════════════════════════════════════════
+
+// ── State ──
+const state = {
+  clips: [],
+  cue: { a: 0, b: 0 },
+  bpm: null,
+  tapTimes: [],
+  beatInterval: null,
+  strobeInterval: null,
+  strobeOn: false,
+  strobeVisible: true,
+  grade: 'none',
+  frameCount: 0,
+  lastFpsTime: performance.now(),
+  fps: 0,
+};
+
+// ── Video elements ──
+const vidA = document.getElementById('vid-a');
+const vidB = document.getElementById('vid-b');
+const canvas = document.getElementById('output-canvas');
+const ctx = canvas.getContext('2d');
+
+// ── Resize canvas ──
+function resizeCanvas() {
+  const el = document.getElementById('center-top');
+  canvas.width = el.clientWidth;
+  canvas.height = el.clientHeight;
+}
+window.addEventListener('resize', resizeCanvas);
+resizeCanvas();
+
+// ── Onboarding ──
+function closeOnboard() {
+  document.getElementById('onboard').style.display = 'none';
+  startRenderLoop();
+}
+
+// ─────────────────────────────────────
+//  CLIP LOADING
+// ─────────────────────────────────────
+function loadClips(files) {
+  const videoExts = /\.(mp4|webm|mov|ogg|m4v|avi)$/i;
+  const newClips = Array.from(files).filter(f => videoExts.test(f.name));
+  if (newClips.length === 0) { alert('No supported video files found in the selected folder.'); return; }
+
+  state.clips = newClips;
+  const grid = document.getElementById('clip-grid');
+  grid.innerHTML = '';
+  document.getElementById('clip-count').textContent = `${newClips.length} clip${newClips.length !== 1 ? 's' : ''} loaded`;
+
+  newClips.forEach((file, i) => {
+    const url = URL.createObjectURL(file);
+    const thumb = document.createElement('div');
+    thumb.className = 'clip-thumb';
+    thumb.dataset.url = url;
+    thumb.dataset.name = file.name;
+
+    const vid = document.createElement('video');
+    vid.src = url;
+    vid.muted = true;
+    vid.preload = 'metadata';
+    vid.currentTime = 0.5; // grab a thumbnail frame
+
+    const nameDiv = document.createElement('div');
+    nameDiv.className = 'clip-name';
+    nameDiv.textContent = file.name.replace(/\.[^.]+$/, '');
+
+    const btns = document.createElement('div');
+    btns.className = 'load-btns';
+    const btnA = document.createElement('button');
+    btnA.className = 'load-deck-btn a';
+    btnA.textContent = '▶ Load to A';
+    btnA.onclick = (e) => { e.stopPropagation(); loadToDeck('a', url, file.name); };
+    const btnB = document.createElement('button');
+    btnB.className = 'load-deck-btn b';
+    btnB.textContent = '▶ Load to B';
+    btnB.onclick = (e) => { e.stopPropagation(); loadToDeck('b', url, file.name); };
+
+    btns.appendChild(btnA);
+    btns.appendChild(btnB);
+    thumb.appendChild(vid);
+    thumb.appendChild(nameDiv);
+    thumb.appendChild(btns);
+    grid.appendChild(thumb);
+
+    // Single click → load to next free deck
+    thumb.addEventListener('click', () => {
+      if (!vidA.src || vidA.src === window.location.href) loadToDeck('a', url, file.name);
+      else loadToDeck('b', url, file.name);
+    });
+  });
+}
+
+function loadToDeck(deck, url, name) {
+  const vid = deck === 'a' ? vidA : vidB;
+  const wasPlaying = !vid.paused;
+  vid.pause();
+  vid.src = url;
+  vid.currentTime = 0;
+  vid.load();
+  vid.oncanplay = () => { if (wasPlaying) vid.play(); drawWaveform(deck); };
+  const shortName = name.replace(/\.[^.]+$/, '');
+  document.getElementById(`${deck}-clip-name`).textContent = shortName;
+  updatePlayBtn(deck, false);
+  drawWaveform(deck);
+}
+
+// ─────────────────────────────────────
+//  PLAYBACK CONTROLS
+// ─────────────────────────────────────
+function togglePlay(deck) {
+  const vid = deck === 'a' ? vidA : vidB;
+  if (!vid.src || vid.src === window.location.href) return;
+  if (vid.paused) { vid.play(); updatePlayBtn(deck, true); }
+  else { vid.pause(); updatePlayBtn(deck, false); }
+}
+
+function stopDeck(deck) {
+  const vid = deck === 'a' ? vidA : vidB;
+  vid.pause();
+  vid.currentTime = 0;
+  updatePlayBtn(deck, false);
+}
+
+function setCue(deck) {
+  const vid = deck === 'a' ? vidA : vidB;
+  state.cue[deck] = vid.currentTime;
+}
+
+function gotoCue(deck) {
+  const vid = deck === 'a' ? vidA : vidB;
+  vid.currentTime = state.cue[deck] || 0;
+}
+
+function toggleLoop(deck) {
+  const vid = deck === 'a' ? vidA : vidB;
+  vid.loop = !vid.loop;
+  document.getElementById(`${deck}-loop`).classList.toggle('active', vid.loop);
+}
+
+function setSpeed(deck, val) {
+  const vid = deck === 'a' ? vidA : vidB;
+  vid.playbackRate = parseFloat(val);
+  document.getElementById(`${deck}-speed-v`).textContent = parseFloat(val).toFixed(2) + '×';
+}
+
+function setVol(deck, val) {
+  const vid = deck === 'a' ? vidA : vidB;
+  vid.volume = parseFloat(val);
+  document.getElementById(`${deck}-vol-v`).textContent = Math.round(val * 100) + '%';
+}
+
+function setMasterVol(val) {
+  vidA.volume = parseFloat(val);
+  vidB.volume = parseFloat(val);
+}
+
+function seekDeck(deck, event) {
+  const vid = deck === 'a' ? vidA : vidB;
+  if (!vid.duration) return;
+  const wrap = document.getElementById(`${deck}-prog-wrap`);
+  const rect = wrap.getBoundingClientRect();
+  const ratio = (event.clientX - rect.left) / rect.width;
+  vid.currentTime = ratio * vid.duration;
+}
+
+function updatePlayBtn(deck, playing) {
+  const btn = document.getElementById(`${deck}-play`);
+  btn.classList.toggle('active', playing);
+  btn.textContent = playing ? '⏸ PAUSE' : '▶ PLAY';
+  document.getElementById(`${deck}-status-dot`).classList.toggle('playing', playing);
+  const overlay = document.getElementById(`${deck}-overlay`);
+  overlay.classList.toggle('paused-icon', !playing);
+}
+
+// Update play buttons on video events
+['a','b'].forEach(deck => {
+  const vid = deck === 'a' ? vidA : vidB;
+  vid.addEventListener('play', () => updatePlayBtn(deck, true));
+  vid.addEventListener('pause', () => updatePlayBtn(deck, false));
+  vid.addEventListener('ended', () => updatePlayBtn(deck, false));
+});
+
+// ─────────────────────────────────────
+//  WAVEFORM VISUALISER (per deck)
+// ─────────────────────────────────────
+function drawWaveform(deck) {
+  const canvas = document.getElementById(`${deck}-wave`);
+  const c = canvas.getContext('2d');
+  const w = canvas.width = canvas.offsetWidth;
+  const h = 24;
+  c.clearRect(0, 0, w, h);
+
+  // Generate a pseudo-waveform pattern tied to clip name
+  const vid = deck === 'a' ? vidA : vidB;
+  const color = deck === 'a' ? '#00e5ff' : '#ff3cac';
+  c.strokeStyle = color;
+  c.globalAlpha = 0.7;
+  c.lineWidth = 1;
+  c.beginPath();
+  const seed = (vid.src || '').length;
+  for (let x = 0; x <= w; x++) {
+    const t = x / w;
+    const amp = 0.3 + 0.7 * Math.abs(Math.sin(t * 13.7 + seed) * Math.cos(t * 7.3 + seed * 0.3));
+    const y = h / 2 + (Math.random() * 0.4 - 0.2) + amp * (h / 2 - 2) * Math.sin(t * 40 + seed);
+    x === 0 ? c.moveTo(x, y) : c.lineTo(x, y);
+  }
+  c.stroke();
+}
+
+// ─────────────────────────────────────
+//  BPM / TAP TEMPO
+// ─────────────────────────────────────
+function tapTempo() {
+  const now = performance.now();
+  state.tapTimes.push(now);
+  if (state.tapTimes.length > 8) state.tapTimes.shift();
+  if (state.tapTimes.length >= 2) {
+    const gaps = [];
+    for (let i = 1; i < state.tapTimes.length; i++) gaps.push(state.tapTimes[i] - state.tapTimes[i-1]);
+    const avgGap = gaps.reduce((a, b) => a + b, 0) / gaps.length;
+    state.bpm = Math.round(60000 / avgGap);
+    document.getElementById('bpm-display').textContent = state.bpm;
+    startBeatFlash(avgGap);
+  }
+}
+
+function resetBpm() {
+  state.bpm = null;
+  state.tapTimes = [];
+  document.getElementById('bpm-display').textContent = '---';
+  if (state.beatInterval) clearInterval(state.beatInterval);
+}
+
+function startBeatFlash(interval) {
+  if (state.beatInterval) clearInterval(state.beatInterval);
+  const ind = document.getElementById('beat-indicator');
+  state.beatInterval = setInterval(() => {
+    ind.classList.add('flash');
+    setTimeout(() => ind.classList.remove('flash'), 80);
+  }, interval);
+}
+
+// ─────────────────────────────────────
+//  STROBE
+// ─────────────────────────────────────
+function toggleStrobe() {
+  state.strobeOn = !state.strobeOn;
+  const btn = document.getElementById('strobe-btn');
+  btn.textContent = state.strobeOn ? 'STROBE ON' : 'STROBE OFF';
+  btn.classList.toggle('on', state.strobeOn);
+  if (state.strobeOn) {
+    const rate = parseInt(document.getElementById('strobe-rate').value);
+    state.strobeInterval = setInterval(() => { state.strobeVisible = !state.strobeVisible; }, 1000 / rate);
+  } else {
+    clearInterval(state.strobeInterval);
+    state.strobeVisible = true;
+  }
+}
+
+function updateStrobeRate(val) {
+  document.getElementById('strobe-rate-v').textContent = val + 'Hz';
+  if (state.strobeOn) {
+    clearInterval(state.strobeInterval);
+    state.strobeInterval = setInterval(() => { state.strobeVisible = !state.strobeVisible; }, 1000 / parseInt(val));
+  }
+}
+
+// ─────────────────────────────────────
+//  COLOUR GRADE
+// ─────────────────────────────────────
+const grades = {
+  none:  { bri: 100, con: 100, sat: 100, hue: 0 },
+  warm:  { bri: 110, con: 105, sat: 120, hue: 20 },
+  cool:  { bri: 95,  con: 110, sat: 90,  hue: -20 },
+  bw:    { bri: 100, con: 130, sat: 0,   hue: 0 },
+  sepia: { bri: 100, con: 110, sat: 30,  hue: 30 },
+  neon:  { bri: 115, con: 90,  sat: 200, hue: 180 },
+  night: { bri: 60,  con: 140, sat: 40,  hue: 200 },
+};
+
+function setGrade(btn, g) {
+  state.grade = g;
+  document.querySelectorAll('.grade-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+// ─────────────────────────────────────
+//  FX VALUE UPDATES (display labels)
+// ─────────────────────────────────────
+function updateFx() {
+  // Deck A
+  document.getElementById('a-bri-v').textContent = document.getElementById('a-bri').value;
+  document.getElementById('a-con-v').textContent = document.getElementById('a-con').value;
+  document.getElementById('a-sat-v').textContent = document.getElementById('a-sat').value;
+  document.getElementById('a-hue-v').textContent = document.getElementById('a-hue').value + '°';
+  document.getElementById('a-blur-v').textContent = document.getElementById('a-blur').value;
+  document.getElementById('a-opac-v').textContent = Math.round(document.getElementById('a-opac').value * 100) + '%';
+  // Deck B
+  document.getElementById('b-bri-v').textContent = document.getElementById('b-bri').value;
+  document.getElementById('b-con-v').textContent = document.getElementById('b-con').value;
+  document.getElementById('b-sat-v').textContent = document.getElementById('b-sat').value;
+  document.getElementById('b-hue-v').textContent = document.getElementById('b-hue').value + '°';
+  document.getElementById('b-blur-v').textContent = document.getElementById('b-blur').value;
+  document.getElementById('b-opac-v').textContent = Math.round(document.getElementById('b-opac').value * 100) + '%';
+  // Master
+  document.getElementById('m-bri-v').textContent = document.getElementById('m-bri').value;
+  document.getElementById('m-con-v').textContent = document.getElementById('m-con').value;
+  document.getElementById('m-sat-v').textContent = document.getElementById('m-sat').value;
+  document.getElementById('m-zoom-v').textContent = document.getElementById('m-zoom').value + '%';
+  document.getElementById('m-rot-v').textContent = document.getElementById('m-rot').value + '°';
+}
+
+// ─────────────────────────────────────
+//  CANVAS RENDER LOOP
+// ─────────────────────────────────────
+function buildFilter(bri, con, sat, hue, blur, invert) {
+  let f = `brightness(${bri}%) contrast(${con}%) saturate(${sat}%) hue-rotate(${hue}deg)`;
+  if (blur > 0) f += ` blur(${blur}px)`;
+  if (invert) f += ' invert(100%)';
+  return f;
+}
+
+function render() {
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0, 0, W, H);
+
+  if (!state.strobeVisible) {
+    requestAnimationFrame(render);
+    updateDeckUI();
+    return;
+  }
+
+  const xfade = parseFloat(document.getElementById('xfader').value); // 0=all A, 1=all B
+  const alphaA = Math.max(0, Math.min(1, 1 - xfade * 2)) * parseFloat(document.getElementById('a-opac').value);
+  const alphaB = Math.max(0, Math.min(1, (xfade - 0.5) * 2)) * parseFloat(document.getElementById('b-opac').value);
+
+  // When xfade is near middle, both are visible
+  const smoothA = xfade <= 0.5 ? 1.0 * parseFloat(document.getElementById('a-opac').value)
+                               : (1 - xfade) * 2 * parseFloat(document.getElementById('a-opac').value);
+  const smoothB = xfade >= 0.5 ? 1.0 * parseFloat(document.getElementById('b-opac').value)
+                               : xfade * 2 * parseFloat(document.getElementById('b-opac').value);
+
+  // Apply grade to master fx
+  const g = grades[state.grade] || grades.none;
+  const mBri = parseFloat(document.getElementById('m-bri').value) * g.bri / 100;
+  const mCon = parseFloat(document.getElementById('m-con').value) * g.con / 100;
+  const mSat = parseFloat(document.getElementById('m-sat').value) * g.sat / 100;
+  const mHue = g.hue;
+  const masterFilter = `brightness(${mBri}%) contrast(${mCon}%) saturate(${mSat}%) hue-rotate(${mHue}deg)`;
+
+  const blendMode = document.getElementById('blend-mode').value === 'add'
+    ? 'lighter' : document.getElementById('blend-mode').value;
+
+  const zoom = parseFloat(document.getElementById('m-zoom').value) / 100;
+  const rot = parseFloat(document.getElementById('m-rot').value) * Math.PI / 180;
+  const mirH = document.getElementById('m-mirh').checked;
+  const mirV = document.getElementById('m-mirv').checked;
+
+  ctx.save();
+  // Master transform
+  ctx.translate(W / 2, H / 2);
+  ctx.scale(zoom * (mirH ? -1 : 1), zoom * (mirV ? -1 : 1));
+  ctx.rotate(rot);
+  ctx.translate(-W / 2, -H / 2);
+  ctx.filter = masterFilter;
+
+  // Draw Deck A
+  if (vidA.readyState >= 2 && smoothA > 0.001) {
+    const filterA = buildFilter(
+      document.getElementById('a-bri').value,
+      document.getElementById('a-con').value,
+      document.getElementById('a-sat').value,
+      document.getElementById('a-hue').value,
+      document.getElementById('a-blur').value,
+      document.getElementById('a-inv').checked
+    );
+    ctx.save();
+    ctx.globalAlpha = smoothA;
+    ctx.filter = masterFilter + ' ' + filterA;
+    const { dw, dh, dx, dy } = fitVideo(vidA, W, H);
+    ctx.drawImage(vidA, dx, dy, dw, dh);
+    ctx.restore();
+  }
+
+  // Draw Deck B
+  if (vidB.readyState >= 2 && smoothB > 0.001) {
+    const filterB = buildFilter(
+      document.getElementById('b-bri').value,
+      document.getElementById('b-con').value,
+      document.getElementById('b-sat').value,
+      document.getElementById('b-hue').value,
+      document.getElementById('b-blur').value,
+      document.getElementById('b-inv').checked
+    );
+    ctx.save();
+    ctx.globalAlpha = smoothB;
+    ctx.globalCompositeOperation = blendMode;
+    ctx.filter = masterFilter + ' ' + filterB;
+    const { dw, dh, dx, dy } = fitVideo(vidB, W, H);
+    ctx.drawImage(vidB, dx, dy, dw, dh);
+    ctx.restore();
+  }
+  ctx.restore();
+
+  // If nothing loaded, show placeholder
+  if (vidA.readyState < 2 && vidB.readyState < 2) {
+    ctx.fillStyle = '#111';
+    ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = '#333';
+    ctx.font = '14px Courier New';
+    ctx.textAlign = 'center';
+    ctx.fillText('Load clips from your OneDrive folder', W / 2, H / 2 - 10);
+    ctx.font = '11px Courier New';
+    ctx.fillText('Use the LOAD FOLDER button in the library panel', W / 2, H / 2 + 14);
+    ctx.textAlign = 'left';
+  }
+
+  updateDeckUI();
+
+  // FPS counter
+  state.frameCount++;
+  const now = performance.now();
+  if (now - state.lastFpsTime > 1000) {
+    state.fps = state.frameCount;
+    state.frameCount = 0;
+    state.lastFpsTime = now;
+    document.getElementById('output-info').textContent =
+      `${canvas.width}×${canvas.height} · ${state.fps}fps · xfade: ${Math.round(xfade * 100)}%`;
+  }
+
+  requestAnimationFrame(render);
+}
+
+function fitVideo(vid, W, H) {
+  const vw = vid.videoWidth || 1280, vh = vid.videoHeight || 720;
+  const scale = Math.min(W / vw, H / vh);
+  const dw = vw * scale, dh = vh * scale;
+  const dx = (W - dw) / 2, dy = (H - dh) / 2;
+  return { dw, dh, dx, dy };
+}
+
+// ─────────────────────────────────────
+//  DECK UI UPDATES (progress, time, waveform cursor)
+// ─────────────────────────────────────
+let uiThrottle = 0;
+function updateDeckUI() {
+  uiThrottle++;
+  if (uiThrottle % 3 !== 0) return; // ~20fps UI update
+  ['a','b'].forEach(deck => {
+    const vid = deck === 'a' ? vidA : vidB;
+    if (!vid.duration) return;
+    const pct = (vid.currentTime / vid.duration) * 100;
+    document.getElementById(`${deck}-prog`).style.width = pct + '%';
+    document.getElementById(`${deck}-time`).textContent = formatTime(vid.currentTime) + ' / ' + formatTime(vid.duration);
+    // waveform cursor
+    const wc = document.getElementById(`${deck}-wave`);
+    const wctx = wc.getContext('2d');
+    const w = wc.width;
+    // just draw a position line on the cached waveform - redraw from scratch would be expensive
+    // so we draw a semi-transparent overlay
+    wctx.clearRect(0, 0, w, 24);
+    drawWaveformFrame(deck, wctx, w, 24, pct / 100);
+  });
+}
+
+const waveCache = { a: null, b: null };
+function drawWaveformFrame(deck, c, w, h, pos) {
+  // This is called frequently so keep it lightweight
+  const color = deck === 'a' ? '#00e5ff' : '#ff3cac';
+  const vid = deck === 'a' ? vidA : vidB;
+  const seed = (vid.src || '').length + (vid.src || '').charCodeAt(0) || 42;
+
+  c.strokeStyle = color;
+  c.globalAlpha = 0.5;
+  c.lineWidth = 1;
+  c.beginPath();
+  for (let x = 0; x <= w; x++) {
+    const t = x / w;
+    const amp = 0.3 + 0.5 * Math.abs(Math.sin(t * 11.7 + seed * 0.01) * Math.cos(t * 5.3));
+    const y = h / 2 + amp * (h / 2 - 2) * Math.sin(t * 30 + seed * 0.02);
+    x === 0 ? c.moveTo(x, y) : c.lineTo(x, y);
+  }
+  c.stroke();
+  // Played portion highlight
+  c.fillStyle = color;
+  c.globalAlpha = 0.2;
+  c.fillRect(0, 0, pos * w, h);
+  // Playhead line
+  if (pos > 0) {
+    c.globalAlpha = 1;
+    c.strokeStyle = '#fff';
+    c.lineWidth = 1.5;
+    c.beginPath();
+    c.moveTo(pos * w, 0);
+    c.lineTo(pos * w, h);
+    c.stroke();
+  }
+  c.globalAlpha = 1;
+}
+
+function formatTime(s) {
+  if (!s || isNaN(s)) return '0:00';
+  const m = Math.floor(s / 60);
+  const sec = Math.floor(s % 60).toString().padStart(2, '0');
+  return `${m}:${sec}`;
+}
+
+// ─────────────────────────────────────
+//  KEYBOARD SHORTCUTS
+// ─────────────────────────────────────
+document.addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
+  switch (e.code) {
+    case 'Space':    e.preventDefault(); togglePlay('a'); break;
+    case 'Enter':    e.preventDefault(); togglePlay('b'); break;
+    case 'ArrowLeft':
+      e.preventDefault();
+      adjustXfader(-0.05);
+      break;
+    case 'ArrowRight':
+      e.preventDefault();
+      adjustXfader(0.05);
+      break;
+    case 'KeyZ':     adjustSpeed('a', -0.1); break;
+    case 'KeyX':     adjustSpeed('a', +0.1); break;
+    case 'KeyN':     adjustSpeed('b', -0.1); break;
+    case 'KeyM':     adjustSpeed('b', +0.1); break;
+    case 'KeyT':     tapTempo(); break;
+    case 'KeyS':     toggleStrobe(); break;
+    case 'KeyL':     toggleLoop('a'); break;
+    case 'KeyK':     toggleLoop('b'); break;
+    case 'KeyQ':     setCue('a'); break;
+    case 'KeyW':     gotoCue('a'); break;
+    case 'KeyO':     setCue('b'); break;
+    case 'KeyP':     gotoCue('b'); break;
+  }
+});
+
+function adjustXfader(delta) {
+  const el = document.getElementById('xfader');
+  el.value = Math.min(1, Math.max(0, parseFloat(el.value) + delta));
+  updateFx();
+}
+
+function adjustSpeed(deck, delta) {
+  const el = document.getElementById(`${deck}-speed`);
+  const newVal = Math.min(3, Math.max(0.1, parseFloat(el.value) + delta));
+  el.value = newVal;
+  setSpeed(deck, newVal);
+}
+
+// ─────────────────────────────────────
+//  INIT
+// ─────────────────────────────────────
+function startRenderLoop() {
+  requestAnimationFrame(render);
+}
+
+// Init waveforms on load
+window.addEventListener('load', () => {
+  updateFx();
+  ['a','b'].forEach(d => {
+    const wc = document.getElementById(`${d}-wave`);
+    wc.width = wc.offsetWidth;
+  });
+  // Demo: loop A/B videos start muted
+  vidA.muted = false;
+  vidB.muted = false;
+  vidA.loop = true;
+  vidB.loop = true;
+  document.getElementById('a-loop').classList.add('active');
+  document.getElementById('b-loop').classList.add('active');
+
+  // Resize waveforms on window resize
+  window.addEventListener('resize', () => {
+    ['a','b'].forEach(d => {
+      const wc = document.getElementById(`${d}-wave`);
+      wc.width = wc.offsetWidth;
+    });
+  });
+});
+</script>
+</body>
+</html>
