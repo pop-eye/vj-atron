@@ -916,32 +916,33 @@ function loadAudioTrack(files) {
   const file = files[0];
   if (!file) return;
 
+  const audioEl = document.getElementById('audio-track');
+
+  // Build the audio graph exactly once — the source node stays alive for all future tracks
   if (!state.audioCtx) {
     state.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     state.analyser = state.audioCtx.createAnalyser();
     state.analyser.fftSize = 2048;
     state.analyser.smoothingTimeConstant = 0.75;
     state.audioData = new Uint8Array(state.analyser.frequencyBinCount);
+    // createMediaElementSource must only ever be called ONCE per element
+    state.audioSource = state.audioCtx.createMediaElementSource(audioEl);
+    state.audioSource.connect(state.analyser);
     state.analyser.connect(state.audioCtx.destination);
   }
 
-  const audioEl = document.getElementById('audio-track');
-  if (state.audioSource) {
-    state.audioSource.disconnect();
-    state.audioSource = null;
-  }
+  // Pause current playback, swap src — the existing graph automatically follows
+  audioEl.pause();
   audioEl.src = URL.createObjectURL(file);
   audioEl.load();
-  audioEl.oncanplay = () => {
-    state.audioSource = state.audioCtx.createMediaElementSource(audioEl);
-    state.audioSource.connect(state.analyser);
+  audioEl.addEventListener('canplay', () => {
     document.getElementById('audio-track-name').textContent = file.name.replace(/\.[^.]+$/, '');
-  };
+  }, { once: true });
 }
 
 function audioPlay() {
   const el = document.getElementById('audio-track');
-  if (!el.src) return;
+  if (!el.getAttribute('src')) return;
   if (state.audioCtx && state.audioCtx.state === 'suspended') state.audioCtx.resume();
   el.play();
 }
