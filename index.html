@@ -586,6 +586,14 @@
           <button onclick="audioPause()">⏸ PAUSE</button>
           <button onclick="audioStop()">■ STOP</button>
         </div>
+        <!-- Analysis level attenuator -->
+        <div class="fx-row" style="margin-top:4px">
+          <label style="min-width:42px">LEVEL</label>
+          <input type="range" id="ar-level" min="0.02" max="1" step="0.01" value="0.5"
+            style="flex:1"
+            oninput="document.getElementById('ar-level-v').textContent=Math.round(this.value*100)+'%'">
+          <span class="v" id="ar-level-v" style="min-width:32px">50%</span>
+        </div>
         <!-- Band meters -->
         <div class="band-meters">
           <div class="band-meter">
@@ -969,9 +977,12 @@ function updateAudioLevels() {
     return sum / ((hiIdx - loIdx + 1) * 255);
   }
 
-  const bass = avgBand(20, 250);
-  const mid  = avgBand(250, 4000);
-  const hi   = avgBand(4000, 16000);
+  const levelEl = document.getElementById('ar-level');
+  const sensitivity = levelEl ? parseFloat(levelEl.value) : 1;
+
+  const bass = avgBand(20, 250)    * sensitivity;
+  const mid  = avgBand(250, 4000)  * sensitivity;
+  const hi   = avgBand(4000, 16000) * sensitivity;
   const overall = bass * 0.45 + mid * 0.35 + hi * 0.2;
 
   const k = 0.25;
